@@ -90,7 +90,7 @@
     board(body) {
       const f = feeder('board');
       const board = LatticeGridKanban.createKanban(body, { grid: f.grid, rowKey: 'id', columnProperty: 'status',
-        card: { title: 'id', description: 'service', badges: 'severity', labels: 'region' },
+        card: { title: 'id', subtitle: 'service', badges: 'severity', labels: 'region' },
       });
       return { grid: f.grid, destroy() { board.destroy(); f.release(); } };
     },
