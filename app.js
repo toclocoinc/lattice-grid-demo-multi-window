@@ -6,7 +6,7 @@
   const BASE = params.get('base') || 'https://cdn.latticegrid.dev/lattice-grid@1.120.0';
   const CHANNEL = params.get('channel') || 'lattice-ops-demo';
   const PANEL = params.get('panel');
-  const STAMP = '20261110';
+  const STAMP = '20261110b';
 
   const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status' };
   const ORDER = ['grid', 'board', 'chart', 'kpi'];
@@ -16,7 +16,7 @@
     id: f, field: f, title: f.charAt(0).toUpperCase() + f.slice(1), layout: { width: MIN_WIDTH[f], min: MIN_WIDTH[f], flex: 1 },
   }));
   const EDGES = ['incidents-chart', 'incidents-kpi', 'incidents-board'].map((to) => ({
-    from: 'incidents', to, on: { from: 'id', to: 'id' },
+    from: 'incidents', to, on: { from: 'id', to: 'id' }, follow: 'filter',
   }));
   const isIncident = (row) => row.type === 'incident';
   const $ = (id) => document.getElementById(id);
