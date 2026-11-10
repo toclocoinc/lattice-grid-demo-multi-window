@@ -64,10 +64,17 @@ a { color: var(--accent); }
   display: grid;
   gap: 16px;
 }
-.stage.dash { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(360px, 1fr); }
+.stage.dash { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); grid-auto-rows: minmax(300px, 1fr); }
+/* The dashboard reflows to the panels still in it: a popped-out panel leaves no hole. */
+.stage.dash[data-count="3"] .panel:last-child { grid-column: 1 / -1; }
+.stage.dash[data-count="2"] { grid-template-rows: minmax(0, 1fr); }
+.stage.dash[data-count="1"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.popped .chip { gap: 8px; }
+.btn-small { padding: 2px 8px; font-size: 12px; line-height: 1.4; }
 .stage.single { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 @media (max-width: 800px) {
-  .stage.dash { grid-template-columns: minmax(0, 1fr); grid-auto-rows: 420px; }
+  .stage.dash, .stage.dash[data-count="2"], .stage.dash[data-count="3"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: 420px; }
+  .stage.dash[data-count="3"] .panel:last-child { grid-column: auto; }
   .top { padding: 12px 14px; }
   .stage { padding: 12px 14px; }
 }

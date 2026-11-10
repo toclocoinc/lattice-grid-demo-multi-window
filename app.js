@@ -9,7 +9,7 @@
   const STAMP = '20261110';
 
   const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status' };
-  const ORDER = ['grid', 'chart', 'kpi', 'board'];
+  const ORDER = ['grid', 'board', 'chart', 'kpi'];
   const ROUTE = { grid: 'incidents', chart: 'incidents-chart', kpi: 'incidents-kpi', board: 'incidents-board' };
   const MIN_WIDTH = { id: 100, service: 100, severity: 90, region: 80, status: 90 };
   const COLUMNS = Object.keys(MIN_WIDTH).map((f) => ({
@@ -150,6 +150,7 @@
   function panelEl(name, withPopOut) {
     const el = document.createElement('section');
     el.className = 'panel';
+    el.dataset.panel = name;
     el.innerHTML = '<div class="panel-head"><h2></h2></div><div class="panel-body"></div>';
     el.querySelector('h2').textContent = TITLES[name];
     if (withPopOut) {
@@ -186,20 +187,39 @@
       el.body.classList.toggle('fill', name === 'grid' || name === 'board');
       mount(name, el.body);
     }
+    function poppedList() {
+      let ul = document.getElementById('popped');
+      if (!ul) {
+        ul = document.createElement('ul');
+        ul.id = 'popped';
+        ul.className = 'chips popped';
+        ul.setAttribute('aria-label', 'Panels open in their own window');
+        document.querySelector('.top').insertBefore(ul, $('back'));
+      }
+      return ul;
+    }
+    function relayout() {
+      const n = stage.querySelectorAll('.panel').length;
+      stage.dataset.count = String(n);
+    }
     function showAway(name, el) {
       unmount(name);
       el.body.classList.remove('fill');
       el.body.textContent = '';
-      const away = document.createElement('div');
-      away.className = 'away';
-      away.innerHTML = '<p>Open in its own window</p>';
+      el.remove();
+      const li = document.createElement('li');
+      li.className = 'chip';
+      li.dataset.panel = name;
+      li.append(TITLES[name] + ' ');
       const back = document.createElement('button');
       back.type = 'button';
-      back.className = 'btn';
+      back.className = 'btn btn-small';
       back.textContent = 'Bring back';
+      back.setAttribute('aria-label', 'Bring back ' + TITLES[name]);
       back.onclick = () => bringBack(name, el);
-      away.appendChild(back);
-      el.body.appendChild(away);
+      li.appendChild(back);
+      poppedList().appendChild(li);
+      relayout();
       rewire();
     }
     function bringBack(name, el) {
@@ -207,6 +227,14 @@
       delete children[name];
       if (w && !w.closed) w.close();
       el.popBtn.disabled = false;
+      const chip = document.querySelector('#popped [data-panel="' + name + '"]');
+      if (chip) chip.remove();
+      const ul = document.getElementById('popped');
+      if (ul && !ul.children.length) ul.remove();
+      // back into its own place in the order
+      const after = ORDER.slice(ORDER.indexOf(name) + 1).map((n) => stage.querySelector('.panel[data-panel="' + n + '"]')).find(Boolean);
+      stage.insertBefore(el, after || null);
+      relayout();
       showInline(name, el);
     }
 
@@ -229,6 +257,7 @@
         }, 500);
       };
     });
+    relayout();
     startFeed();
   }
 
@@ -256,6 +285,7 @@
   /* ---------- start ---------- */
   $('channel').textContent = CHANNEL;
   loadAssets().then(() => {
+    if (typeof LatticeGrid.setLicence === 'function') LatticeGrid.setLicence('LG1.eyJ2IjoxLCJwIjoibGF0dGljZS1ncmlkIiwidCI6IlRPQ0xPQ08gSW5jIC0gcHVibGljIGRlbW9zIiwiZSI6IjIwMzAtMDEtMDEiLCJkIjpbInRvY2xvY29pbmMuZ2l0aHViLmlvIl19.9De42ua3aCGpiMB6EVRP7Tv-upUlDI-0T07rlSPzvCrsqg8t4YJi7SRnStEpAg48uzmcG7il1fR_TfwkUE7iCA'); // toclocoinc.github.io
     router = LatticeGridDataRouter.createDataRouter({ key: 'id', rowKey: 'id', seq: true, overlap: true });
     if (PANEL && TITLES[PANEL]) panelWindow(); else launcher();
     const lastSeq = () => (typeof router.lastSeq === 'function' ? router.lastSeq() : router.lastSeq);
