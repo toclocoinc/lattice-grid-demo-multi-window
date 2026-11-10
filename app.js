@@ -11,8 +11,9 @@
   const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status' };
   const ORDER = ['grid', 'chart', 'kpi', 'board'];
   const ROUTE = { grid: 'incidents', chart: 'incidents-chart', kpi: 'incidents-kpi', board: 'incidents-board' };
-  const COLUMNS = ['id', 'service', 'severity', 'region', 'status'].map((f) => ({
-    id: f, field: f, title: f.charAt(0).toUpperCase() + f.slice(1), layout: { width: 110, min: 70, flex: 1 },
+  const MIN_WIDTH = { id: 100, service: 100, severity: 90, region: 80, status: 90 };
+  const COLUMNS = Object.keys(MIN_WIDTH).map((f) => ({
+    id: f, field: f, title: f.charAt(0).toUpperCase() + f.slice(1), layout: { width: MIN_WIDTH[f], min: MIN_WIDTH[f], flex: 1 },
   }));
   const EDGES = ['incidents-chart', 'incidents-kpi', 'incidents-board'].map((to) => ({
     from: 'incidents', to, on: { from: 'id', to: 'id' },
@@ -60,7 +61,7 @@
     grid(body) {
       const host = document.createElement('div');
       body.appendChild(host);
-      const grid = baseGrid(host, { selection: { mode: 'multiple' }, filterRow: true });
+      const grid = baseGrid(host, { selection: { mode: 'multiple', checkbox: true }, filterRow: true });
       const off = router.subscribe(isIncident, grid, { label: ROUTE.grid, rowKey: 'id' });
       return { grid, destroy() { off(); grid.destroy(); } };
     },
@@ -246,6 +247,7 @@
     const stage = $('stage');
     stage.className = 'stage single';
     const el = panelEl(PANEL, false);
+    el.querySelector('.panel-head').remove(); // the page heading already names the panel
     stage.appendChild(el);
     el.body.classList.toggle('fill', PANEL === 'grid' || PANEL === 'board');
     mount(PANEL, el.body);
