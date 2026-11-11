@@ -3,7 +3,10 @@
 A dashboard spread over separate browser windows. One window holds a live
 incident feed; the grid, chart, key figures and board can each be popped out
 into their own window, for example onto a second monitor. Every window stays
-live off that one feed, and a selection in one window narrows the others.
+live off that one feed, and a filter or selection in one window narrows the
+others.
+
+**Live demo:** https://toclocoinc.github.io/lattice-grid-demo-multi-window/
 
 Built with [Lattice Grid](https://www.latticegrid.dev/realtime-applications/).
 
@@ -17,8 +20,11 @@ Built with [Lattice Grid](https://www.latticegrid.dev/realtime-applications/).
 - **Four panels, four routes.** Incident records are routed to a grid, a chart
   (incidents by service, coloured by severity), key figures and a board
   grouped by status. A window attaches only the panels it shows.
+- **Filters travel.** Type in the grid's filter row and the chart, figures and
+  board show only the rows the grid shows, wherever those panels are. Each
+  route edge carries `follow: 'filter'`.
 - **Selections travel.** Select incidents in the grid and the chart, figures
-  and board narrow to exactly those rows, wherever those panels are. Clear the
+  and board narrow to exactly those rows, inside the current filter. Clear the
   selection and everything is back.
 - **Grid state travels.** A filter or sort in one copy of the grid is followed
   by a second copy of the grid in another window.
@@ -47,25 +53,30 @@ two dashboards in the same browser apart.
 
 1. Open the dashboard. Leave this window open: it holds the feed.
 2. Click **Pop out** on **Incidents by service**. The chart opens in its own
-   window; drag it to your second screen. The dashboard shows "Open in its
-   own window" in its place.
-3. In the grid, tick two or three rows. The chart in the other window, the key
+   window; drag it to your second screen. The dashboard closes the gap and
+   lists the chart in its header with a **Bring back** button.
+3. Type `high` in the grid's Severity filter. The chart in the other window,
+   the key figures and the board show only high-severity incidents. Clear the
+   box and all return.
+4. In the grid, tick two or three rows. The chart in the other window, the key
    figures and the board narrow to those rows. Untick them and all return.
-4. Open the grid panel a second time (copy the address of the dashboard and add
+5. Open the grid panel a second time (copy the address of the dashboard and add
    `&panel=grid`), type in a filter row or sort a column, and watch the other
    copy follow.
-5. Close the chart window, or press **Bring back**, and the chart is drawn in
+6. Close the chart window, or press **Bring back**, and the chart is drawn in
    the dashboard again. Pop it out once more: it resyncs to the current feed at
    once and shows the same sequence number.
 
 ## Check it headlessly
 
-`tools/verify.mjs` loads the dashboard against a local build, opens the chart
+`tools/verify.mjs` loads the dashboard against a grid build, opens the chart
 panel in a second page of the same browser, selects two rows in the first and
 asserts that the chart window holds exactly two rows within two seconds. It
 needs `playwright-core` and a Chrome or Chromium binary:
 
 ```sh
-npm i playwright-core            # in a scratch folder
-node /path/to/tools/verify.mjs --base http://localhost:8001 --chrome "/path/to/chrome"
+npm i --no-save playwright-core
+node tools/verify.mjs --base https://cdn.latticegrid.dev/lattice-grid@1.120.0 --chrome "/path/to/chrome"
 ```
+
+The publish workflow runs the same check before every deploy.

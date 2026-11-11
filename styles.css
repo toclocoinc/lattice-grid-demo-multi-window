@@ -45,6 +45,8 @@ a { color: var(--accent); }
 .top h1 { margin: 0; font-size: 20px; line-height: 1.25; }
 .note { margin: 2px 0 0; color: var(--muted); }
 .note:empty { display: none; }
+.links { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.links a { color: inherit; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .chip {
   padding: 4px 10px;
