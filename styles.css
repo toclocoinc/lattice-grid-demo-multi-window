@@ -66,17 +66,21 @@ a { color: var(--accent); }
   display: grid;
   gap: 16px;
 }
-.stage.dash { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); grid-auto-rows: minmax(300px, 1fr); }
-/* The dashboard reflows to the panels still in it: a popped-out panel leaves no hole. */
-.stage.dash[data-count="3"] .panel:last-child { grid-column: 1 / -1; }
+.stage.dash { grid-template-columns: repeat(6, minmax(0, 1fr)); grid-template-rows: minmax(0, 1.35fr) minmax(0, 1fr); grid-auto-rows: minmax(300px, 1fr); }
+.stage.dash > .panel { grid-column: span 3; }
+/* The dashboard reflows to the panels still in it: a popped-out panel leaves no hole.
+   Five: the tall row holds two panels, the second row three. Four: two by two. */
+.stage.dash[data-count="5"] > .panel:nth-child(n+3) { grid-column: span 2; }
+.stage.dash[data-count="3"] > .panel:last-child { grid-column: 1 / -1; }
 .stage.dash[data-count="2"] { grid-template-rows: minmax(0, 1fr); }
 .stage.dash[data-count="1"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+.stage.dash[data-count="1"] > .panel { grid-column: 1 / -1; }
 .popped .chip { gap: 8px; }
 .btn-small { padding: 2px 8px; font-size: 12px; line-height: 1.4; }
 .stage.single { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
 @media (max-width: 800px) {
-  .stage.dash, .stage.dash[data-count="2"], .stage.dash[data-count="3"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: 420px; }
-  .stage.dash[data-count="3"] .panel:last-child { grid-column: auto; }
+  .stage.dash, .stage.dash[data-count] { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; grid-auto-rows: 420px; }
+  .stage.dash[data-count] > .panel, .stage.dash[data-count] > .panel:nth-child(n) { grid-column: auto; }
   .top { padding: 12px 14px; }
   .stage { padding: 12px 14px; }
 }
@@ -113,11 +117,13 @@ a { color: var(--accent); }
 .panel-body { position: relative; flex: 1 1 auto; min-height: 0; overflow: auto; }
 .panel-body.fill > * { height: 100%; }
 .panel-body.chart { padding: 8px; }
+.panel-body.map { overflow: hidden; }
+.panel-body.map .lat-mapview__legend { top: 8px; bottom: auto; left: auto; right: 8px; }
 .panel-body.kpi {
   padding: 14px;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  grid-auto-rows: 120px;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-auto-rows: 96px;
   align-content: start;
   gap: 12px;
 }

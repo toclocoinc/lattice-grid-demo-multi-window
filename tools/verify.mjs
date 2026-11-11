@@ -96,6 +96,31 @@ try {
   const tClr = await waitFor(async () => (await gridRows(b, hidden)) > 2, 2000);
   check('clearing the selection restores the chart window', tClr !== null, tClr !== null ? 'in ' + tClr + ' ms' : '');
 
+  // 5. Region = EMEA in the grid narrows the map's grid (its feeder), inline and in its own window
+  const mapInline = '.lg-hidden > div:last-child';
+  const regions = (p, scope) => p.evaluate((sel) => {
+    const host = document.querySelector(sel);
+    if (!host || !host.__lattice) return null;
+    const g = host.__lattice, out = [];
+    for (let i = 0; i < g.rows.count(); i++) out.push(g.rows.get(i).data.region);
+    return out;
+  }, scope);
+  const onlyEmea = async (p, scope) => { const r = await regions(p, scope); return r && r.length > 0 && r.every((x) => x === 'EMEA'); };
+  const mapPage = await ctx.newPage(); watch(mapPage, 'map');
+  await mapPage.goto(origin + '/index.html' + q + '&panel=map');
+  const tMap = await waitFor(async () => (await gridRows(mapPage, hidden)) > 2, 6000);
+  check('map window resyncs on join', tMap !== null);
+  check('map draws markers', await waitFor(async () => (await mapPage.evaluate(() => document.querySelectorAll('.panel-body.map canvas').length)) > 0, 6000) !== null);
+  const before = await gridRows(a, mapInline);
+  const regionBox = a.locator('.panel-body.grid .lg-filter-row input, .panel-body.grid input[placeholder="Contains"]').nth(3); // Id, Service, Severity, Region
+  await regionBox.fill('EMEA');
+  const tFil = await waitFor(async () => (await onlyEmea(a, mapInline)) && (await onlyEmea(mapPage, hidden)), 3000);
+  check('Region = EMEA narrows the map (inline and in its own window) to EMEA rows only', tFil !== null,
+    tFil !== null ? before + ' -> ' + (await gridRows(a, mapInline)) + ' rows' : 'inline ' + JSON.stringify(await regions(a, mapInline)) + ', window ' + JSON.stringify(await regions(mapPage, hidden)));
+  await regionBox.fill('');
+  const tBack = await waitFor(async () => (await gridRows(a, mapInline)) === before || (await gridRows(a, mapInline)) > 2, 3000);
+  check('clearing the filter restores the map', tBack !== null);
+
   check('no console errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 } catch (err) {
   check('verify run', false, err.message);

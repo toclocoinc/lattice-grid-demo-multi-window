@@ -6,18 +6,37 @@
   const BASE = params.get('base') || 'https://cdn.latticegrid.dev/lattice-grid@1.120.0';
   const CHANNEL = params.get('channel') || 'lattice-ops-demo';
   const PANEL = params.get('panel');
-  const STAMP = '20261110b';
+  const MAPLIBRE = 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1';
+  const DECK = 'https://cdn.jsdelivr.net/npm/deck.gl@9.0.38';
+  const STAMP = '20261111a';
 
-  const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status' };
-  const ORDER = ['grid', 'board', 'chart', 'kpi'];
-  const ROUTE = { grid: 'incidents', chart: 'incidents-chart', kpi: 'incidents-kpi', board: 'incidents-board' };
+  const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status', map: 'Incidents on the map' };
+  const ORDER = ['grid', 'board', 'chart', 'kpi', 'map'];
+  const ROUTE = { grid: 'incidents', chart: 'incidents-chart', kpi: 'incidents-kpi', board: 'incidents-board', map: 'incidents-map' };
   const MIN_WIDTH = { id: 100, service: 100, severity: 90, region: 80, status: 90 };
   const COLUMNS = Object.keys(MIN_WIDTH).map((f) => ({
     id: f, field: f, title: f.charAt(0).toUpperCase() + f.slice(1), layout: { width: MIN_WIDTH[f], min: MIN_WIDTH[f], flex: 1 },
   }));
-  const EDGES = ['incidents-chart', 'incidents-kpi', 'incidents-board'].map((to) => ({
+  const EDGES = ['incidents-chart', 'incidents-kpi', 'incidents-board', 'incidents-map'].map((to) => ({
     from: 'incidents', to, on: { from: 'id', to: 'id' }, follow: 'filter',
   }));
+  const MAP_COLUMNS = COLUMNS.concat(['lat', 'lng'].map((f) => ({ id: f, field: f, title: f.toUpperCase(), layout: { width: 90 } })));
+  // Fixed sites per region; a service always reports from the same site, jittered a little per incident.
+  const SITES = {
+    EMEA: [[51.51, -0.13], [50.11, 8.68]],
+    AMER: [[38.95, -77.45], [45.84, -119.7]],
+    APAC: [[1.35, 103.82], [-33.87, 151.21]],
+  };
+  const hash = (str) => { let h = 2166136261; for (const c of String(str)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+  function withPlace(row) {
+    if (!row || row.type !== 'incident' || row.lat != null) return row;
+    const sites = SITES[row.region] || SITES.EMEA;
+    const site = sites[hash(row.service) % sites.length];
+    const jit = (salt) => ((hash(row.id + salt) % 1000) / 1000 - 0.5) * 1.6;
+    return Object.assign({}, row, { lat: +(site[0] + jit('a')).toFixed(4), lng: +(site[1] + jit('b')).toFixed(4) });
+  }
+  // The chart's four palette colours, in the order it assigns them to the severities.
+  const SEVERITY_COLOURS = { medium: '#0072b2', high: '#e69f00', critical: '#009e73', low: '#cc79a7' };
   const isIncident = (row) => row.type === 'incident';
   const $ = (id) => document.getElementById(id);
 
@@ -34,9 +53,13 @@
   function loadAssets() {
     const v = '?v=' + STAMP;
     const css = load('link', { rel: 'stylesheet', href: BASE + '/lattice-grid.min.css' + v });
-    const files = ['lattice-grid', 'modules/charts', 'modules/data-router', 'modules/kpi', 'modules/kanban', 'modules/mock-socket'];
+    const files = ['lattice-grid', 'modules/charts', 'modules/data-router', 'modules/kpi', 'modules/kanban', 'modules/mock-socket', 'modules/mapview'];
     const scripts = files.reduce((p, f) => p.then(() => load('script', { src: BASE + '/' + f + '.min.js' + v })), Promise.resolve());
-    return Promise.all([css, scripts]);
+    // The map view draws with deck.gl and MapLibre GL, which the page supplies (keyless).
+    const mapCss = load('link', { rel: 'stylesheet', href: MAPLIBRE + '/dist/maplibre-gl.css' });
+    const mapLibs = load('script', { src: MAPLIBRE + '/dist/maplibre-gl.js' })
+      .then(() => load('script', { src: DECK + '/dist.min.js' }));
+    return Promise.all([css, scripts, mapCss, mapLibs]);
   }
 
   /* ---------- panels: each mount returns { grid?, destroy } ---------- */
@@ -49,10 +72,10 @@
   const baseGrid = (host, extra) =>
     LatticeGrid.createGrid(host, Object.assign({ columns: COLUMNS, rows: [], rowKey: 'id' }, extra));
   // A hidden grid receives the route's rows; the chart, tiles and board read from it.
-  function feeder(name) {
+  function feeder(name, extra) {
     const host = document.createElement('div');
     hiddenHost.appendChild(host);
-    const grid = baseGrid(host);
+    const grid = baseGrid(host, extra);
     const off = router.subscribe(isIncident, grid, { label: ROUTE[name], rowKey: 'id' });
     return { grid, release() { off(); grid.destroy(); host.remove(); } };
   }
@@ -81,7 +104,7 @@
         tiles: [
           { id: 'open', label: 'Open incidents', aggregation: 'count', filter: open },
           { id: 'critical', label: 'Critical', aggregation: 'count', filter: (r) => open(r) && r.severity === 'critical' },
-          { id: 'resolved', label: 'Resolved in this session', aggregation: 'count', filter: (r) => r.status === 'resolved' },
+          { id: 'resolved', label: 'Resolved so far', aggregation: 'count', filter: (r) => r.status === 'resolved' },
           { id: 'regions', label: 'Regions affected', aggregation: 'countDistinct', field: 'region', filter: open },
         ],
       });
@@ -93,6 +116,19 @@
         card: { title: 'id', subtitle: 'service', badges: 'severity', labels: 'region' },
       });
       return { grid: f.grid, destroy() { board.destroy(); f.release(); } };
+    },
+    map(body) {
+      const f = feeder('map', { columns: MAP_COLUMNS });
+      const view = LatticeGridMapView.createMapView(f.grid, {
+        container: body, mode: 'container', geometry: { lat: 'lat', lng: 'lng' },
+        color: { field: 'severity', map: SEVERITY_COLOURS }, radiusUnits: 'pixels', radius: 7,
+        tooltip: ['id', 'service', 'severity', 'region'], legend: true,
+        libs: { deck: window.deck, maplibregl: window.maplibregl },
+      });
+      // The panel is resized by the dashboard reflow and the window; keep the map the size of its box.
+      const ro = new ResizeObserver(() => { if (view.map) view.map.resize(); });
+      ro.observe(body);
+      return { grid: f.grid, destroy() { ro.disconnect(); view.destroy(); f.release(); } };
     },
   };
 
@@ -136,11 +172,11 @@
       const msg = JSON.parse(ev.data);
       if (msg.kind === 'snapshot') {
         cache.clear();
-        msg.rows.filter(isIncident).forEach((r) => cache.set(r.id, r));
-        router.load(msg.rows);
+        msg.rows.filter(isIncident).forEach((r) => cache.set(r.id, withPlace(r)));
+        router.load(msg.rows.map(withPlace));
         return;
       }
-      const changes = msg.changes.map((c) => Object.assign({}, c, { seq: ++seq }));
+      const changes = msg.changes.map((c) => Object.assign({}, c, { seq: ++seq, row: withPlace(c.row) }));
       changes.forEach((c) => isIncident(c.row) && cache.set(c.row.id, c.row));
       router.apply(changes);
     };
