@@ -8,7 +8,7 @@
   const PANEL = params.get('panel');
   const MAPLIBRE = 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1';
   const DECK = 'https://cdn.jsdelivr.net/npm/deck.gl@9.0.38';
-  const STAMP = '20261111a';
+  const STAMP = '20261111b';
 
   const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status', map: 'Incidents on the map' };
   const ORDER = ['grid', 'board', 'chart', 'kpi', 'map'];
@@ -35,8 +35,8 @@
     const jit = (salt) => ((hash(row.id + salt) % 1000) / 1000 - 0.5) * 1.6;
     return Object.assign({}, row, { lat: +(site[0] + jit('a')).toFixed(4), lng: +(site[1] + jit('b')).toFixed(4) });
   }
-  // The chart's four palette colours, in the order it assigns them to the severities.
-  const SEVERITY_COLOURS = { medium: '#0072b2', high: '#e69f00', critical: '#009e73', low: '#cc79a7' };
+  // One colour per severity, shared by the chart and the map so every panel agrees in every window.
+  const SEVERITY_COLOURS = { critical: '#cc79a7', high: '#e69f00', medium: '#0072b2', low: '#009e73' };
   const isIncident = (row) => row.type === 'incident';
   const $ = (id) => document.getElementById(id);
 
@@ -91,7 +91,7 @@
     chart(body) {
       const f = feeder('chart');
       const chart = LatticeGrid.createChart({
-        grid: f.grid, container: body, type: 'bar', x: 'service', y: { fn: 'count' }, series: 'severity',
+        grid: f.grid, container: body, type: 'bar', x: 'service', y: { fn: 'count' }, series: 'severity', scheme: SEVERITY_COLOURS,
       });
       return { grid: f.grid, destroy() { chart.destroy(); f.release(); } };
     },
