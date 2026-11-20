@@ -34,7 +34,7 @@ jobs:
       - name: Check the page works in a browser
         run: |
           npm i --no-save --no-package-lock playwright-core@1.65
-          node tools/verify.mjs --base https://cdn.latticegrid.dev/lattice-grid@1.120.0 --chrome "$(command -v google-chrome)"
+          node tools/verify.mjs --base https://cdn.latticegrid.dev/lattice-grid@1.127.0 --chrome "$(command -v google-chrome)"
           rm -rf node_modules
 
       - name: Configure Pages

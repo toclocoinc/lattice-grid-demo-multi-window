@@ -3,12 +3,12 @@
   'use strict';
 
   const params = new URLSearchParams(location.search);
-  const BASE = params.get('base') || 'https://cdn.latticegrid.dev/lattice-grid@1.120.0';
+  const BASE = params.get('base') || 'https://cdn.latticegrid.dev/lattice-grid@1.127.0';
   const CHANNEL = params.get('channel') || 'lattice-ops-demo';
   const PANEL = params.get('panel');
   const MAPLIBRE = 'https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1';
   const DECK = 'https://cdn.jsdelivr.net/npm/deck.gl@9.0.38';
-  const STAMP = '20261111b';
+  const STAMP = '20261120a';
 
   const TITLES = { grid: 'Incidents', chart: 'Incidents by service', kpi: 'Key figures', board: 'Board by status', map: 'Incidents on the map' };
   const ORDER = ['grid', 'board', 'chart', 'kpi', 'map'];
@@ -259,9 +259,10 @@
       rewire();
     }
     function bringBack(name, el) {
-      const w = children[name];
+      const handle = children[name];
+      if (!handle) return; // already back (close() runs onClose, which lands here again)
       delete children[name];
-      if (w && !w.closed) w.close();
+      handle.close();
       el.popBtn.disabled = false;
       const chip = document.querySelector('#popped [data-panel="' + name + '"]');
       if (chip) chip.remove();
@@ -279,18 +280,18 @@
       stage.appendChild(el);
       showInline(name, el);
       el.popBtn.onclick = () => {
-        const w = window.open(childUrl(name), '_blank', 'popup,width=900,height=600');
-        if (!w) {
+        const handle = router.popOut({
+          url: childUrl(name),
+          name: 'lattice-' + CHANNEL + '-' + name,
+          onClose: () => bringBack(name, el),
+        });
+        if (handle.blocked) {
           $('owner-note').textContent = 'The browser blocked the new window. Allow pop-ups for this page and try again.';
           return;
         }
-        children[name] = w;
+        children[name] = handle;
         el.popBtn.disabled = true;
         showAway(name, el);
-        const timer = setInterval(() => {
-          if (children[name] !== w) return clearInterval(timer);
-          if (w.closed) { clearInterval(timer); bringBack(name, el); }
-        }, 500);
       };
     });
     relayout();
