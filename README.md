@@ -87,7 +87,7 @@ needs `playwright-core` and a Chrome or Chromium binary:
 
 ```sh
 npm i --no-save playwright-core
-node tools/verify.mjs --base https://cdn.latticegrid.dev/lattice-grid@1.120.0 --chrome "/path/to/chrome"
+node tools/verify.mjs --base https://cdn.latticegrid.dev/lattice-grid@1.127.0 --chrome "/path/to/chrome"
 ```
 
 The publish workflow runs the same check before every deploy.
